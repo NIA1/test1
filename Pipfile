@@ -8,6 +8,10 @@ fastapi = "*"
 pydantic = "*"
 uvicorn = "*"
 pytest = "*"
+jinja2 = "*"
+numpy = "*"
+Pillow = "*"
+python-multipart = "*"
 
 [dev-packages]
 
