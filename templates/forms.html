@@ -12,8 +12,8 @@
     <input name="name_op" value="operation" />
    </p>
    <p>
-    Введите число <br>
-    <input name="number_op" type="number" value = "0" />
+    Horizontal True/False <br>
+    <input name="number_op" type="text" value = "True" />
    </p>
    <table>
    <tr>
@@ -36,13 +36,16 @@
   </form>
 {% if ready %}
 <table>
-{% for image in images %}
+ <p><img src="{{ 'static/result.jpg' }}"></p>
+
+{% if images %}
 <tr>
  <td>
-  <img src = "{{ image }}">
+  <img src="{{ image }}">
+
  </td>
 </tr>
- {% endfor %}
+ {% endif %}
 </table>
 {% endif %}
 </body>

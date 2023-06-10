@@ -2,6 +2,8 @@ import fastapi.responses
 import numpy
 import io
 from PIL import Image
+from PIL import ImageDraw
+import matplotlib.pyplot as plt
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -55,6 +57,54 @@ async def make_image(request: Request):
  # передаем в шаблон две переменные, к которым сохранили url
  return templates.TemplateResponse("image.html", {"request": request, "im_st":image_st, "im_dyn": image_dyn})
 
+def draw_cross(imgg, color, number_op):
+ is_horizontal = number_op
+ if is_horizontal == 'True':
+  is_horizontal = True
+ elif is_horizontal == 'False':
+  is_horizontal = False
+ else:
+  print("Type True or False")
+  return
+
+ img = imgg.copy()
+ img_input = imgg
+
+ if is_horizontal:
+  draw = ImageDraw.Draw(img)
+  # Рисуем горизонтальный крест
+  shape1 = [(0, 90),(200, 110)]
+  draw.ellipse(shape1, fill=color, outline=(0, 0, 0))
+  shape2 = [(90, 40), (110, 160)]
+  draw.ellipse(shape2, fill=color, outline=(0, 0, 0))
+  # img.show()
+ else:
+  draw = ImageDraw.Draw(img)
+  # Рисуем вертикальный крест
+  shape1 = [(90, 0), (110, 200)]
+  draw.ellipse(shape1, fill=color, outline=(0, 0, 0))
+  shape2 = [(40, 90), (160, 110)]
+  draw.ellipse(shape2, fill=color, outline=(0, 0, 0))
+ # выводим начальную и конечную картинки
+ fig, axs = plt.subplots(2,2)
+ axs[0,0].imshow(img_input)
+ axs[0,1].imshow(img)
+ axs[0,0].axis('off')
+ axs[0,1].axis('off')
+ # строим гистограмму распредения цветов начальной картинки
+ r, g, b = img_input.split()
+ colors = ('r', 'g', 'b')
+ for channel, color in zip((r, g, b), colors):
+  axs[1,0].hist(numpy.array(channel).ravel(), bins=256, color=color, alpha=0.5)
+ # строим гистограмму распределения цветов конечной картинки
+ r, g, b = img.split()
+ colors = ('r', 'g', 'b')
+ for channel, color in zip((r, g, b), colors):
+  axs[1,1].hist(numpy.array(channel).ravel(), bins=256, color=color, alpha=0.5)
+ img.save("./output.jpg",'JPEG')
+ plt.savefig("static/result.jpg")
+ return fig
+
 from fastapi import Form, File, UploadFile
 from typing import List
 import hashlib
@@ -62,7 +112,7 @@ from PIL import ImageDraw
 @app.post("/image_form", response_class=HTMLResponse)
 async def make_image(request: Request,
             name_op:str = Form(),
-            number_op:int = Form(),
+            number_op:str = Form(),
             r:int = Form(),
             g:int = Form(),
             b:int = Form(),
@@ -86,13 +136,14 @@ async def make_image(request: Request,
   p_images = [Image.open(io.BytesIO(con)).convert("RGB").resize((200,200)) for con in content]
   # сохраняем изображения в папке static
   for i in range(len(p_images)):
-   draw = ImageDraw.Draw(p_images[i])
-   # Рисуем красный эллипс с черной окантовкой
-   draw.ellipse((100, 100, 150, 200+number_op), fill=(r,g,b), outline=(0, 0, 0))
-   p_images[i].save("./"+images[i],'JPEG')
+   img = p_images[i]
+   figures = draw_cross(img,(r,g,b), number_op)
+   image = Image.open("static/result.jpg")
+   #image = ["static/"+hashlib.sha256(file.filename.encode('utf-8')).hexdigest() for file in files]
+   # p_images[i].save("./"+images[i],'JPEG')
   # возвращаем html с параметрами-ссылками на изображения, которые позже будут
   # извлечены браузером запросами get по указанным ссылкам в img src
-  return templates.TemplateResponse("forms.html", {"request": request, "ready": ready, "images": images})
+  return templates.TemplateResponse("forms.html", {"request": request, "ready": ready, "images": image})
 @app.get("/image_form", response_class=HTMLResponse)
 async def make_image(request: Request):
  return templates.TemplateResponse("forms.html", {"request": request})
